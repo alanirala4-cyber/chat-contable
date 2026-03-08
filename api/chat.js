@@ -14,7 +14,19 @@ export default async function handler(req, res) {
 
   try {
 
-    const { message } = req.body;
+    let body = "";
+
+    await new Promise((resolve) => {
+      req.on("data", chunk => {
+        body += chunk;
+      });
+
+      req.on("end", resolve);
+    });
+
+    const dataBody = JSON.parse(body);
+
+    const message = dataBody.message;
 
     const GEMINI_KEY = process.env.GEMINI_KEY;
 
@@ -30,7 +42,7 @@ export default async function handler(req, res) {
             {
               parts: [
                 {
-                  text: `Eres un asistente contable experto en Paraguay. Solo respondes temas de DNIT, IVA, IRP, IRE, RUC y contabilidad paraguaya.
+                  text: `Eres un asistente contable experto en Paraguay. Responde sobre DNIT, IVA, IRP, IRE y RUC.
 
 Pregunta: ${message}`
                 }
@@ -45,12 +57,17 @@ Pregunta: ${message}`
 
     const reply =
       data?.candidates?.[0]?.content?.parts?.[0]?.text ||
-      "No pude generar una respuesta.";
+      "No pude generar respuesta.";
 
     res.status(200).json({ reply });
 
   } catch (error) {
+
     console.log(error);
-    res.status(500).json({ reply: "Error del servidor." });
+
+    res.status(500).json({
+      reply: "Error del servidor."
+    });
+
   }
 }
